@@ -198,6 +198,7 @@ dbtable = Table(
 # Initialize the database
 if options.initialize:
     connection = engine.connect()
+    connection.execute(dbtable.delete())
     path = options.directory
     for d in os.walk(path):
         for f in d[2]:
