@@ -146,7 +146,7 @@ parser.add_option(
     "-w", "--watch", dest="watch", action="store_true",
     default=False, help="Watch for changes on the filesystem.")
 # parser.add_option(
-#     "-s", "--silent", dest="silen", action="store_true",
+#     "-x", "--silent", dest="silen", action="store_true",
 #     default=False, help="Make the process run deamonically")
 parser.add_option(
     "-r", "--directory", dest="directory", help="directory to query",
@@ -170,6 +170,10 @@ parser.add_option(
     "-t", "--database-table", dest="database_table", help="Database table",
     metavar="TABLE_NAME"
 )
+parser.add_option(
+    "-s", "--database-schema", dest="database_schema", help="Database schema",
+    metavar="SCHEMA_NAME"
+)
 
 (options, args) = parser.parse_args()
 
@@ -185,8 +189,10 @@ engine = create_engine(
         'db_url': options.database_url,
         'db_port': options.database_port,
         'db_name': options.database})
-
-meta = MetaData(bind=engine)
+if options.database_schema:
+    meta = MetaData(bind=engine, schema=options.database_schema)
+else:
+    meta = MetaData(bind=engine)
 
 dbtable = Table(
     options.database_table,
