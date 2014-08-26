@@ -16,8 +16,8 @@ class EventHandler(FileSystemEventHandler):
     def on_created(self, event):
         connection = engine.connect()
         if not event.is_directory:
-            directory, file = os.path.split(event.src_path)
-            directory = os.path.basename(directory)
+            full_directory, file = os.path.split(event.src_path)
+            directory = os.path.basename(full_directory)
             try:
                 trans = connection.begin()
                 connection.execute(
@@ -26,6 +26,7 @@ class EventHandler(FileSystemEventHandler):
                         self.dbtable.c.file==None))
                 connection.execute(
                     self.dbtable.insert(),
+                    full_directory=full_directory,
                     directory=directory,
                     file=file)
                 trans.commit()
@@ -38,6 +39,7 @@ class EventHandler(FileSystemEventHandler):
                 trans = connection.begin()
                 connection.execute(
                     self.dbtable.insert(),
+                    full_directory=event.src_path,
                     directory=directory,
                     file=None)
                 trans.commit()
@@ -49,8 +51,8 @@ class EventHandler(FileSystemEventHandler):
     def on_deleted(self, event):
         connection = engine.connect()
         if not event.is_directory:
-            directory, file = os.path.split(event.src_path)
-            directory = os.path.basename(directory)
+            full_directory, file = os.path.split(event.src_path)
+            directory = os.path.basename(full_directory)
             try:
                 trans = connection.begin()
                 connection.execute(
@@ -59,6 +61,7 @@ class EventHandler(FileSystemEventHandler):
                     self.dbtable.c.file==file))
                 connection.execute(
                     self.dbtable.insert(),
+                    full_directory=full_directory,
                     directory=directory,
                     file=None)
                 trans.commit()
@@ -82,10 +85,10 @@ class EventHandler(FileSystemEventHandler):
     def on_moved(self, event):
         connection = engine.connect()
         if not event.is_directory:
-            directory, src_file = os.path.split(event.src_path)
-            src_directory = os.path.basename(directory)
-            directory, dest_file = os.path.split(event.dest_path)
-            dest_directory = os.path.basename(directory)
+            full_src_directory, src_file = os.path.split(event.src_path)
+            src_directory = os.path.basename(full_src_directory)
+            full_dest_directory, dest_file = os.path.split(event.dest_path)
+            dest_directory = os.path.basename(full_dest_directory)
             try:
                 trans = connection.begin()
                 connection.execute(
@@ -98,6 +101,7 @@ class EventHandler(FileSystemEventHandler):
                         self.dbtable.c.file==None))
                 connection.execute(
                     self.dbtable.insert(),
+                    full_directory=full_dest_directory,
                     directory=dest_directory,
                     file=dest_file)
                 r = connection.execute(
@@ -107,6 +111,7 @@ class EventHandler(FileSystemEventHandler):
                     connection.execute(
                         self.dbtable.insert(),
                         directory=src_directory,
+                        full_directory=full_src_directory,
                         file=None)
 
                 trans.commit()
@@ -123,6 +128,7 @@ class EventHandler(FileSystemEventHandler):
                     self.dbtable.c.directory==src_directory))
                 connection.execute(
                     self.dbtable.insert(),
+                    full_director=event.dest_path,
                     directory=dest_directory)
                 trans.commit()
             except:
@@ -183,7 +189,11 @@ engine = create_engine(
 meta = MetaData(bind=engine)
 
 dbtable = Table(
-    options.database_table, meta, Column('directory', Text), Column('file', Text))
+    options.database_table,
+    meta,
+    Column('directory', Text),
+    Column('full_directory', Text),
+    Column('file', Text))
 
 # Initialize the database
 if options.initialize:
@@ -197,6 +207,7 @@ if options.initialize:
                 connection.execute(
                     dbtable.insert(),
                     directory=os.path.split(d[0])[-1],
+                    full_directory=d[0],
                     file=f)
                 trans.commit()
             except:
@@ -209,6 +220,7 @@ if options.initialize:
                 connection.execute(
                     dbtable.insert(),
                     directory=os.path.split(d[0])[-1],
+                    full_directory=d[0],
                     file=None)
                 trans.commit()
             except:
